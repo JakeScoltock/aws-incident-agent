@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git checkout*)",
+      "Bash(git branch*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(gh pr*)",
+      "Bash(gh repo*)",
+      "Bash(ruff*)",
+      "Bash(pytest*)",
+      "Bash(pip install*)",
+      "Bash(python*)",
+      "Bash(terraform init*)",
+      "Bash(terraform plan*)",
+      "Bash(terraform validate*)",
+      "Bash(terraform fmt*)",
+      "Bash(aws logs*)",
+      "Bash(aws cloudwatch*)",
+      "Bash(aws lambda get*)",
+      "Bash(aws lambda list*)",
+      "Bash(aws sts get-caller-identity)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(terraform apply*)",
+      "Bash(terraform destroy*)",
+      "Bash(aws * delete*)",
+      "Bash(aws * remove*)",
+      "Bash(rm -rf*)"
+    ]
+  }
+}

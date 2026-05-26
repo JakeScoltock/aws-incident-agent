@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-tree:*)",
+      "WebFetch(domain:strandsagents.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebSearch",
+      "Bash(pwd:*)"
+    ]
+  }
+}
