@@ -130,22 +130,22 @@ aws-incident-agent/
 
 ## 3. Step-by-Step MVP Build Plan
 
-### Phase 1 — Foundation (Tasks 1–3)
+### Phase 1 — Foundation (Tasks 1–3) ✅
 1. **Dev Container** — `.devcontainer/` setup (Dockerfile + devcontainer.json)
 2. **Project scaffold** — `pyproject.toml`, `.gitignore`, `README.md`, `services/shared/models.py`
 3. **Demo API Lambda** — `services/demo_api/handler.py` with deliberate timeout bug
 
-### Phase 2 — Infrastructure Skeleton (Tasks 4–7)
-4. **Terraform base** — backend config, variables, provider, modules scaffold
-5. **Demo API infra** — Lambda + API GW + CloudWatch alarm + EventBridge rule via Terraform
-6. **Observability infra** — DynamoDB deployment history table + CloudWatch log groups
-7. **AgentCore infra** — ECR repos, IAM roles for agents, AgentCore Runtime resources
+### Phase 2 — Tools (Tasks 4–7) ✅
+4. **CloudWatch tools** — `cloudwatch_metrics.py`, `cloudwatch_logs.py` (boto3 + `@tool`)
+5. **Deployment history tool** — `deployment_history.py` (DynamoDB reader + `@tool`)
+6. **GitHub read tools** — `repo_read.py` (GitHub API via `httpx` + `@tool`)
+7. **GitHub write tools** — `branch.py`, `commit.py`, `pull_request.py` (+ `@tool`)
 
-### Phase 3 — Tools (Tasks 8–11)
-8. **CloudWatch tools** — `cloudwatch_metrics.py`, `cloudwatch_logs.py` (boto3 + `@tool`)
-9. **Deployment history tool** — `deployment_history.py` (DynamoDB reader + `@tool`)
-10. **GitHub read tools** — `repo_read.py` (GitHub API via `httpx` + `@tool`)
-11. **GitHub write tools** — `branch.py`, `commit.py`, `pull_request.py` (+ `@tool`)
+### Phase 3 — Infrastructure Skeleton (Tasks 8–11)
+8. **Terraform base** — backend config, variables, provider, modules scaffold
+9. **Demo API infra** — Lambda + API GW + CloudWatch alarm + EventBridge rule via Terraform
+10. **Observability infra** — DynamoDB deployment history table + CloudWatch log groups
+11. **AgentCore infra** — ECR repos, IAM roles for agents, AgentCore Runtime resources
 
 ### Phase 4 — Agents (Tasks 12–15)
 12. **Shared models** — All Pydantic models, config (Pydantic Settings)
