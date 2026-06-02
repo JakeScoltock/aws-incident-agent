@@ -1,4 +1,5 @@
 """Placeholder adapter Lambda — replaced by the AgentCore runtime in Phase 4."""
+
 import logging
 
 logger = logging.getLogger(__name__)
