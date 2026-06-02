@@ -1,0 +1,96 @@
+data "aws_caller_identity" "current" {}
+
+# ── Step Functions execution role ─────────────────────────────────────────────
+
+data "aws_iam_policy_document" "sfn_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["states.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+resource "aws_iam_role" "sfn" {
+  name               = "incident-agent-sfn-${var.env}"
+  assume_role_policy = data.aws_iam_policy_document.sfn_assume.json
+}
+
+data "aws_iam_policy_document" "sfn" {
+  statement {
+    sid     = "InvokeLambdaAdapters"
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      aws_lambda_function.investigator_adapter.arn,
+      "${aws_lambda_function.investigator_adapter.arn}:*",
+      aws_lambda_function.remediation_adapter.arn,
+      "${aws_lambda_function.remediation_adapter.arn}:*",
+    ]
+  }
+
+  statement {
+    sid       = "PublishAlerts"
+    actions   = ["sns:Publish"]
+    resources = [var.alert_topic_arn]
+  }
+
+  statement {
+    sid = "CloudWatchLogs"
+    actions = [
+      "logs:CreateLogDelivery",
+      "logs:PutLogEvents",
+      "logs:GetLogDelivery",
+      "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:ListLogDeliveries",
+      "logs:PutResourcePolicy",
+      "logs:DescribeResourcePolicies",
+      "logs:DescribeLogGroups",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "sfn" {
+  name   = "sfn-policy"
+  role   = aws_iam_role.sfn.id
+  policy = data.aws_iam_policy_document.sfn.json
+}
+
+# ── Lambda adapter execution roles ────────────────────────────────────────────
+
+data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "investigator_adapter" {
+  name               = "incident-agent-investigator-adapter-${var.env}"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "investigator_adapter_basic" {
+  role       = aws_iam_role.investigator_adapter.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role" "remediation_adapter" {
+  name               = "incident-agent-remediation-adapter-${var.env}"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "remediation_adapter_basic" {
+  role       = aws_iam_role.remediation_adapter.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
