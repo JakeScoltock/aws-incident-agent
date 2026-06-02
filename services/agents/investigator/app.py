@@ -1,6 +1,7 @@
 import logging
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+
 from services.shared.models import IncidentContext
 
 from .agent import build_investigator_agent

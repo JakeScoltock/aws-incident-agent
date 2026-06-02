@@ -1,11 +1,11 @@
 import logging
 from pathlib import Path
 
-from services.shared.config import settings
-from services.shared.models import IncidentReport
 from strands import Agent
 from strands.models import BedrockModel
 
+from services.shared.config import settings
+from services.shared.models import IncidentReport
 from services.tools.aws_observability import (
     get_deployment_history,
     get_lambda_metrics,
