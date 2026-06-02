@@ -32,3 +32,15 @@ variable "alert_email" {
   type        = string
   default     = ""
 }
+
+variable "agentcore_investigator_runtime_id" {
+  description = "AgentCore Runtime ID for the investigator (set after runtime creation, leave empty to keep placeholder)"
+  type        = string
+  default     = ""
+}
+
+variable "agentcore_remediation_runtime_id" {
+  description = "AgentCore Runtime ID for the remediation agent (set after runtime creation, leave empty to keep placeholder)"
+  type        = string
+  default     = ""
+}
