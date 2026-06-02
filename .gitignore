@@ -18,6 +18,7 @@ MANIFEST
 *.tfplan
 .terraform.lock.hcl
 override.tf
+terraform.tfvars
 override.tf.json
 *_override.tf
 *_override.tf.json
@@ -36,5 +37,6 @@ Thumbs.db
 
 # Secrets
 .env
+.devcontainer/.env
 *.pem
 *.key

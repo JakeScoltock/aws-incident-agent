@@ -4,3 +4,7 @@ github_token                = "ghp_..."   # GitHub PAT with repo read+write scop
 github_repo                 = "owner/repo"
 alarm_duration_threshold_ms = 27000
 alert_email                 = ""          # Set to receive SNS notifications, e.g. "you@example.com"
+
+# AgentCore Runtime IDs — set after running: python3 scripts/create_agentcore_runtimes.py
+agentcore_investigator_runtime_id = ""
+agentcore_remediation_runtime_id  = ""

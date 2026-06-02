@@ -3,7 +3,7 @@ data "aws_iam_policy_document" "agentcore_assume" {
     actions = ["sts:AssumeRole"]
     principals {
       type        = "Service"
-      identifiers = ["bedrock.amazonaws.com"]
+      identifiers = ["bedrock-agentcore.amazonaws.com"]
     }
   }
 }
@@ -20,6 +20,12 @@ data "aws_iam_policy_document" "investigator" {
   statement {
     sid       = "Bedrock"
     actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid     = "ECRPull"
+    actions = ["ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
     resources = ["*"]
   }
 
@@ -61,6 +67,12 @@ data "aws_iam_policy_document" "remediation" {
   statement {
     sid       = "Bedrock"
     actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid     = "ECRPull"
+    actions = ["ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
     resources = ["*"]
   }
 
