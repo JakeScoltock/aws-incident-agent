@@ -4,15 +4,28 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: eu-west-1
+  TF_DIR: infra/terraform
+
 jobs:
-  deploy:
+  # ── Terraform plan (PRs) / apply (main) ───────────────────────────────────
+  terraform:
+    name: Terraform ${{ github.ref == 'refs/heads/main' && 'Apply' || 'Plan' }}
     runs-on: ubuntu-latest
     if: ${{ secrets.AWS_ROLE_ARN != '' }}
+    outputs:
+      investigator_ecr_url: ${{ steps.tf-outputs.outputs.investigator_ecr_url }}
+      remediation_ecr_url: ${{ steps.tf-outputs.outputs.remediation_ecr_url }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,27 +33,75 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: eu-west-1
-
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build investigator agent image
-        run: |
-          # TODO: build and push investigator agent image
-          echo "Investigator image build not yet implemented"
-
-      - name: Build remediation agent image
-        run: |
-          # TODO: build and push remediation agent image
-          echo "Remediation image build not yet implemented"
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.12.0"
+          terraform_wrapper: false  # required for clean `terraform output` capture
 
-      - name: Deploy infrastructure
+      - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_github_token: ${{ secrets.GH_TOKEN }}
+          TF_VAR_github_repo: ${{ secrets.GH_REPO }}
+          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture Terraform outputs
+        id: tf-outputs
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ env.TF_DIR }}
         run: |
-          # TODO: terraform init + apply
-          echo "Terraform apply not yet implemented"
+          set -euo pipefail
+          echo "investigator_ecr_url=$(terraform output -raw investigator_ecr_url)" >> "$GITHUB_OUTPUT"
+          echo "remediation_ecr_url=$(terraform output -raw remediation_ecr_url)" >> "$GITHUB_OUTPUT"
+
+  # ── Build and push agent images (main only, after terraform) ──────────────
+  build-and-push:
+    name: Build & Push Agent Images
+    needs: terraform
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push investigator image
+        if: hashFiles('services/agents/investigator/Dockerfile') != ''
+        run: |
+          docker build \
+            -t ${{ needs.terraform.outputs.investigator_ecr_url }}:${{ github.sha }} \
+            -t ${{ needs.terraform.outputs.investigator_ecr_url }}:latest \
+            services/agents/investigator/
+          docker push ${{ needs.terraform.outputs.investigator_ecr_url }}:${{ github.sha }}
+          docker push ${{ needs.terraform.outputs.investigator_ecr_url }}:latest
+
+      - name: Build and push remediation image
+        if: hashFiles('services/agents/remediation/Dockerfile') != ''
+        run: |
+          docker build \
+            -t ${{ needs.terraform.outputs.remediation_ecr_url }}:${{ github.sha }} \
+            -t ${{ needs.terraform.outputs.remediation_ecr_url }}:latest \
+            services/agents/remediation/
+          docker push ${{ needs.terraform.outputs.remediation_ecr_url }}:${{ github.sha }}
+          docker push ${{ needs.terraform.outputs.remediation_ecr_url }}:latest
