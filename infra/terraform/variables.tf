@@ -44,3 +44,15 @@ variable "agentcore_remediation_runtime_id" {
   type        = string
   default     = ""
 }
+
+variable "agentcore_investigator_runtime_arn" {
+  description = "AgentCore Runtime ARN for the investigator (arn:aws:bedrock-agentcore:region:account:runtime/id)"
+  type        = string
+  default     = ""
+}
+
+variable "agentcore_remediation_runtime_arn" {
+  description = "AgentCore Runtime ARN for the remediation agent (arn:aws:bedrock-agentcore:region:account:runtime/id)"
+  type        = string
+  default     = ""
+}

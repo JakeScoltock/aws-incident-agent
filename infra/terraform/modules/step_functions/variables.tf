@@ -46,6 +46,18 @@ variable "agentcore_remediation_runtime_id" {
   default     = ""
 }
 
+variable "agentcore_investigator_runtime_arn" {
+  description = "AgentCore Runtime ARN for the investigator (arn:aws:bedrock-agentcore:region:account:runtime/id)"
+  type        = string
+  default     = ""
+}
+
+variable "agentcore_remediation_runtime_arn" {
+  description = "AgentCore Runtime ARN for the remediation agent (arn:aws:bedrock-agentcore:region:account:runtime/id)"
+  type        = string
+  default     = ""
+}
+
 variable "monitored_function_name" {
   description = "Name of the Lambda function the investigator should analyse"
   type        = string
