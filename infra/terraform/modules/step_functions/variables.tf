@@ -33,3 +33,25 @@ variable "agentcore_remediation_ecr_url" {
   type        = string
   default     = ""
 }
+
+variable "agentcore_investigator_runtime_id" {
+  description = "AgentCore Runtime ID for the investigator (set after runtime creation)"
+  type        = string
+  default     = ""
+}
+
+variable "agentcore_remediation_runtime_id" {
+  description = "AgentCore Runtime ID for the remediation agent (set after runtime creation)"
+  type        = string
+  default     = ""
+}
+
+variable "monitored_function_name" {
+  description = "Name of the Lambda function the investigator should analyse"
+  type        = string
+}
+
+variable "github_repo_ssm_name" {
+  description = "SSM parameter name containing the GitHub repo (owner/repo)"
+  type        = string
+}
