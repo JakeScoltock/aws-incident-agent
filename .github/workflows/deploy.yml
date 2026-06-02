@@ -21,7 +21,6 @@ jobs:
   terraform:
     name: Terraform ${{ github.ref == 'refs/heads/main' && 'Apply' || 'Plan' }}
     runs-on: ubuntu-latest
-    if: ${{ secrets.AWS_ROLE_ARN != '' }}
     outputs:
       investigator_ecr_url: ${{ steps.tf-outputs.outputs.investigator_ecr_url }}
       remediation_ecr_url: ${{ steps.tf-outputs.outputs.remediation_ecr_url }}
@@ -72,7 +71,7 @@ jobs:
     name: Build & Push Agent Images
     needs: terraform
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN != '' }}
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
