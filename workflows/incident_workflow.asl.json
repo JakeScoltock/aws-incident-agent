@@ -1,0 +1,143 @@
+{
+  "_README": "REFERENCE TEMPLATE ONLY — do not deploy this file directly. ARN placeholders (${...}) are never substituted here. The authoritative state machine is rendered by Terraform via jsonencode() in infra/terraform/modules/step_functions/state_machine.tf.",
+  "Comment": "AWS Incident Agent — investigate alarm then open a remediation PR",
+  "StartAt": "ExtractAlarmContext",
+  "States": {
+    "ExtractAlarmContext": {
+      "Type": "Pass",
+      "Comment": "Reshape the EventBridge CloudWatch alarm event into a clean context object",
+      "Parameters": {
+        "alarm_name.$": "$.detail.alarmName",
+        "alarm_state.$": "$.detail.state.value",
+        "alarm_reason.$": "$.detail.state.reason",
+        "account_id.$": "$.account",
+        "aws_region.$": "$.region",
+        "triggered_at.$": "$.time"
+      },
+      "Next": "Investigate"
+    },
+
+    "Investigate": {
+      "Type": "Task",
+      "Comment": "Invoke the investigator adapter Lambda (backed by AgentCore in Phase 4)",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${InvestigatorAdapterArn}",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "body.$": "$.Payload.body"
+      },
+      "ResultPath": "$.investigation",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Next": "CheckConfidence"
+    },
+
+    "CheckConfidence": {
+      "Type": "Choice",
+      "Comment": "Only proceed to remediation if the investigator is sufficiently confident",
+      "Choices": [
+        {
+          "Variable": "$.investigation.body.confidence",
+          "NumericGreaterThanEquals": 0.5,
+          "Next": "Remediate"
+        }
+      ],
+      "Default": "NotifyLowConfidence"
+    },
+
+    "Remediate": {
+      "Type": "Task",
+      "Comment": "Invoke the remediation adapter Lambda — opens a PR, never merges",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${RemediationAdapterArn}",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "body.$": "$.Payload.body"
+      },
+      "ResultPath": "$.remediation",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Next": "NotifySuccess"
+    },
+
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${AlertTopicArn}",
+        "Message.$": "States.Format('Incident resolved: {}. PR: {}', $.investigation.body.summary, $.remediation.body.pr_url)",
+        "Subject": "Incident Agent — Remediation PR opened"
+      },
+      "Next": "Succeed"
+    },
+
+    "NotifyLowConfidence": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${AlertTopicArn}",
+        "Message.$": "States.Format('Low-confidence investigation ({}). Manual review required. Alarm: {}', $.investigation.body.confidence, $.alarm_name)",
+        "Subject": "Incident Agent — Low confidence, manual review needed"
+      },
+      "Next": "Succeed"
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${AlertTopicArn}",
+        "Message.$": "States.Format('Incident agent failed. Alarm: {}. Error: {}', $.alarm_name, $.error.Cause)",
+        "Subject": "Incident Agent — Pipeline failure"
+      },
+      "Next": "Fail"
+    },
+
+    "Succeed": {
+      "Type": "Succeed"
+    },
+
+    "Fail": {
+      "Type": "Fail",
+      "Cause": "Incident pipeline failed — see SNS notification for details"
+    }
+  }
+}
