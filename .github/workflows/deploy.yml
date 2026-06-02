@@ -89,9 +89,10 @@ jobs:
         if: hashFiles('services/agents/investigator/Dockerfile') != ''
         run: |
           docker build \
+            -f services/agents/investigator/Dockerfile \
             -t ${{ needs.terraform.outputs.investigator_ecr_url }}:${{ github.sha }} \
             -t ${{ needs.terraform.outputs.investigator_ecr_url }}:latest \
-            services/agents/investigator/
+            .
           docker push ${{ needs.terraform.outputs.investigator_ecr_url }}:${{ github.sha }}
           docker push ${{ needs.terraform.outputs.investigator_ecr_url }}:latest
 
@@ -99,8 +100,9 @@ jobs:
         if: hashFiles('services/agents/remediation/Dockerfile') != ''
         run: |
           docker build \
+            -f services/agents/remediation/Dockerfile \
             -t ${{ needs.terraform.outputs.remediation_ecr_url }}:${{ github.sha }} \
             -t ${{ needs.terraform.outputs.remediation_ecr_url }}:latest \
-            services/agents/remediation/
+            .
           docker push ${{ needs.terraform.outputs.remediation_ecr_url }}:${{ github.sha }}
           docker push ${{ needs.terraform.outputs.remediation_ecr_url }}:latest
