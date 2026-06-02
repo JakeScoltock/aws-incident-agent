@@ -14,18 +14,12 @@ terraform {
 
   # Bootstrap (one-time, before first terraform init):
   #   aws s3 mb s3://aws-incident-agent-tfstate --region eu-west-1
-  #   aws dynamodb create-table \
-  #     --table-name aws-incident-agent-tfstate-lock \
-  #     --attribute-definitions AttributeName=LockID,AttributeType=S \
-  #     --key-schema AttributeName=LockID,KeyType=HASH \
-  #     --billing-mode PAY_PER_REQUEST \
-  #     --region eu-west-1
 
   backend "s3" {
     bucket         = "aws-incident-agent-tfstate"
     key            = "incident-agent/terraform.tfstate"
     region         = "eu-west-1"
-    dynamodb_table = "aws-incident-agent-tfstate-lock"
+    use_lockfile = true
     encrypt        = true
   }
 }
