@@ -18,7 +18,7 @@ IMAGE_URI = os.environ["IMAGE_URI"]
 ROLE_ARN = os.environ["ROLE_ARN"]
 AWS_REGION = os.environ.get("AWS_REGION", "eu-west-1")
 
-RUNTIME_CONFIG = {"container": {"imageUri": IMAGE_URI}}
+ARTIFACT = {"containerConfiguration": {"containerUri": IMAGE_URI}}
 NETWORK_CONFIG = {"networkMode": "PUBLIC"}
 PROTOCOL_CONFIG = {"serverProtocol": "HTTP"}
 
@@ -54,7 +54,7 @@ def main() -> None:
         print(f"  found {runtime_id} — updating", flush=True)
         client.update_agent_runtime(
             agentRuntimeId=runtime_id,
-            runtimeConfiguration=RUNTIME_CONFIG,
+            agentRuntimeArtifact=ARTIFACT,
             roleArn=ROLE_ARN,
             networkConfiguration=NETWORK_CONFIG,
             protocolConfiguration=PROTOCOL_CONFIG,
@@ -63,7 +63,7 @@ def main() -> None:
         print("  not found — creating", flush=True)
         resp = client.create_agent_runtime(
             agentRuntimeName=RUNTIME_NAME,
-            runtimeConfiguration=RUNTIME_CONFIG,
+            agentRuntimeArtifact=ARTIFACT,
             roleArn=ROLE_ARN,
             networkConfiguration=NETWORK_CONFIG,
             protocolConfiguration=PROTOCOL_CONFIG,
