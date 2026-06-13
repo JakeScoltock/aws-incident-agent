@@ -4,12 +4,6 @@ resource "aws_apigatewayv2_api" "demo_api" {
   description   = "Demo API endpoint for incident simulation"
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.demo_api.id
-  name        = "$default"
-  auto_deploy = true
-}
-
 resource "aws_apigatewayv2_integration" "lambda" {
   api_id                 = aws_apigatewayv2_api.demo_api.id
   integration_type       = "AWS_PROXY"
@@ -17,10 +11,38 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "default" {
+resource "aws_apigatewayv2_route" "proxy" {
   api_id    = aws_apigatewayv2_api.demo_api.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+}
+
+resource "aws_apigatewayv2_route" "root" {
+  api_id    = aws_apigatewayv2_api.demo_api.id
+  route_key = "ANY /"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+}
+
+# Explicit deployment (replaces auto_deploy=true) so the $default stage is
+# always in a known-deployed state and the execute-api DNS entry is created.
+resource "aws_apigatewayv2_deployment" "main" {
+  api_id = aws_apigatewayv2_api.demo_api.id
+
+  depends_on = [
+    aws_apigatewayv2_integration.lambda,
+    aws_apigatewayv2_route.proxy,
+    aws_apigatewayv2_route.root,
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id        = aws_apigatewayv2_api.demo_api.id
+  name          = "$default"
+  deployment_id = aws_apigatewayv2_deployment.main.id
 }
 
 resource "aws_lambda_permission" "api_gateway" {

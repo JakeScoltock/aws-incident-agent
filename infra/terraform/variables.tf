@@ -56,3 +56,9 @@ variable "agentcore_remediation_runtime_arn" {
   type        = string
   default     = ""
 }
+
+variable "image_tag" {
+  description = "Agent image tag to deploy to AgentCore runtimes (defaults to latest; CI sets to git SHA)"
+  type        = string
+  default     = "latest"
+}

@@ -17,63 +17,10 @@ env:
   TF_DIR: infra/terraform
 
 jobs:
-  # ── Terraform plan (PRs) / apply (main) ───────────────────────────────────
-  terraform:
-    name: Terraform ${{ github.ref == 'refs/heads/main' && 'Apply' || 'Plan' }}
-    runs-on: ubuntu-latest
-    outputs:
-      investigator_ecr_url: ${{ steps.tf-outputs.outputs.investigator_ecr_url }}
-      remediation_ecr_url: ${{ steps.tf-outputs.outputs.remediation_ecr_url }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.12.0"
-          terraform_wrapper: false  # required for clean `terraform output` capture
-
-      - name: Terraform init
-        working-directory: ${{ env.TF_DIR }}
-        run: terraform init
-
-      - name: Terraform plan
-        working-directory: ${{ env.TF_DIR }}
-        env:
-          TF_VAR_github_token: ${{ secrets.GH_TOKEN }}
-          TF_VAR_github_repo: ${{ secrets.GH_REPO }}
-          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
-          TF_VAR_agentcore_investigator_runtime_id: ${{ vars.AGENTCORE_INVESTIGATOR_RUNTIME_ID }}
-          TF_VAR_agentcore_remediation_runtime_id: ${{ vars.AGENTCORE_REMEDIATION_RUNTIME_ID }}
-          TF_VAR_agentcore_investigator_runtime_arn: ${{ vars.AGENTCORE_INVESTIGATOR_RUNTIME_ARN }}
-          TF_VAR_agentcore_remediation_runtime_arn: ${{ vars.AGENTCORE_REMEDIATION_RUNTIME_ARN }}
-        run: terraform plan -out=tfplan
-
-      - name: Terraform apply
-        if: github.ref == 'refs/heads/main'
-        working-directory: ${{ env.TF_DIR }}
-        run: terraform apply -auto-approve tfplan
-
-      - name: Capture Terraform outputs
-        id: tf-outputs
-        if: github.ref == 'refs/heads/main'
-        working-directory: ${{ env.TF_DIR }}
-        run: |
-          set -euo pipefail
-          echo "investigator_ecr_url=$(terraform output -raw investigator_ecr_url)" >> "$GITHUB_OUTPUT"
-          echo "remediation_ecr_url=$(terraform output -raw remediation_ecr_url)" >> "$GITHUB_OUTPUT"
-
-  # ── Build and push agent images (main only, after terraform) ──────────────
+  # ── Build and push agent images (main only) ───────────────────────────────
+  # Runs BEFORE terraform so runtimes are updated to the freshly-pushed image.
   build-and-push:
     name: Build & Push Agent Images
-    needs: terraform
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -100,21 +47,75 @@ jobs:
       - name: Build and push investigator image
         if: hashFiles('services/agents/investigator/Dockerfile') != ''
         run: |
+          REPO=$(aws ecr describe-repositories \
+            --repository-names incident-agent-investigator-dev \
+            --query 'repositories[0].repositoryUri' --output text)
           docker buildx build \
             --platform linux/arm64 \
             -f services/agents/investigator/Dockerfile \
-            -t ${{ needs.terraform.outputs.investigator_ecr_url }}:${{ github.sha }} \
-            -t ${{ needs.terraform.outputs.investigator_ecr_url }}:latest \
+            -t ${REPO}:${{ github.sha }} \
+            -t ${REPO}:latest \
             --push \
             .
 
       - name: Build and push remediation image
         if: hashFiles('services/agents/remediation/Dockerfile') != ''
         run: |
+          REPO=$(aws ecr describe-repositories \
+            --repository-names incident-agent-remediation-dev \
+            --query 'repositories[0].repositoryUri' --output text)
           docker buildx build \
             --platform linux/arm64 \
             -f services/agents/remediation/Dockerfile \
-            -t ${{ needs.terraform.outputs.remediation_ecr_url }}:${{ github.sha }} \
-            -t ${{ needs.terraform.outputs.remediation_ecr_url }}:latest \
+            -t ${REPO}:${{ github.sha }} \
+            -t ${REPO}:latest \
             --push \
             .
+
+  # ── Terraform plan (PRs) / apply (main, after image push) ─────────────────
+  terraform:
+    name: Terraform ${{ github.ref == 'refs/heads/main' && 'Apply' || 'Plan' }}
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    # Run on PRs (build-and-push skipped) and on main after successful image push
+    if: always() && (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Python dependencies for runtime management
+        run: pip install boto3 --quiet
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.0"
+          terraform_wrapper: false  # required for clean `terraform output` capture
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_github_token: ${{ secrets.GH_TOKEN }}
+          TF_VAR_github_repo: ${{ secrets.GH_REPO }}
+          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+          TF_VAR_agentcore_investigator_runtime_id: ${{ vars.AGENTCORE_INVESTIGATOR_RUNTIME_ID }}
+          TF_VAR_agentcore_remediation_runtime_id: ${{ vars.AGENTCORE_REMEDIATION_RUNTIME_ID }}
+          TF_VAR_agentcore_investigator_runtime_arn: ${{ vars.AGENTCORE_INVESTIGATOR_RUNTIME_ARN }}
+          TF_VAR_agentcore_remediation_runtime_arn: ${{ vars.AGENTCORE_REMEDIATION_RUNTIME_ARN }}
+          TF_VAR_image_tag: ${{ github.sha }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
