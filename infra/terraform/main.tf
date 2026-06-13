@@ -37,10 +37,12 @@ module "step_functions" {
   agentcore_remediation_role_arn    = module.agentcore.remediation_role_arn
   agentcore_investigator_ecr_url    = module.agentcore.investigator_ecr_url
   agentcore_remediation_ecr_url     = module.agentcore.remediation_ecr_url
-  agentcore_investigator_runtime_id = var.agentcore_investigator_runtime_id
-  agentcore_remediation_runtime_id  = var.agentcore_remediation_runtime_id
-  monitored_function_name           = "incident-agent-demo-api-${var.env}"
-  github_repo_ssm_name              = "/incident-agent/${var.env}/github-repo"
+  agentcore_investigator_runtime_id  = var.agentcore_investigator_runtime_id
+  agentcore_remediation_runtime_id   = var.agentcore_remediation_runtime_id
+  agentcore_investigator_runtime_arn = var.agentcore_investigator_runtime_arn
+  agentcore_remediation_runtime_arn  = var.agentcore_remediation_runtime_arn
+  monitored_function_name            = "incident-agent-demo-api-${var.env}"
+  github_repo_ssm_name               = "/incident-agent/${var.env}/github-repo"
 }
 
 module "eventbridge" {

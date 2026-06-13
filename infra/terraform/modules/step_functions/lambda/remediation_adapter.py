@@ -9,7 +9,8 @@ import boto3
 
 logger = logging.getLogger(__name__)
 
-RUNTIME_ID = os.environ.get("AGENTCORE_RUNTIME_ID", "")
+RUNTIME_ARN = os.environ.get("AGENTCORE_RUNTIME_ARN", "")
+RUNTIME_ID = os.environ.get("AGENTCORE_RUNTIME_ID", "")  # kept for placeholder check
 GITHUB_REPO_SSM_NAME = os.environ.get("GITHUB_REPO_SSM_NAME", "")
 AWS_REGION = os.environ.get("AWS_REGION", "eu-west-1")
 
@@ -28,15 +29,15 @@ def handler(event: dict, context) -> dict:
         "base_branch": "main",
     }
 
-    session_id = f"rem-{uuid.uuid4().hex[:16]}"
+    session_id = f"rem-{uuid.uuid4().hex}"  # must be 33+ chars
     logger.info(
         "invoking remediation runtime",
-        extra={"session_id": session_id, "runtime_id": RUNTIME_ID},
+        extra={"session_id": session_id, "runtime_arn": RUNTIME_ARN},
     )
 
-    client = boto3.client("bedrock-agentruntime", region_name=AWS_REGION)
+    client = boto3.client("bedrock-agentcore", region_name=AWS_REGION)
     response = client.invoke_agent_runtime(
-        agentRuntimeId=RUNTIME_ID,
+        agentRuntimeArn=RUNTIME_ARN,
         runtimeSessionId=session_id,
         payload=json.dumps(payload).encode("utf-8"),
     )

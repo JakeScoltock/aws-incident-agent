@@ -47,8 +47,13 @@ def test_handler_calls_invoke_and_returns_body():
     with (
         patch.object(investigator_adapter, "RUNTIME_ID", "runtime-abc"),
         patch.object(
+            investigator_adapter,
+            "RUNTIME_ARN",
+            "arn:aws:bedrock-agentcore:eu-west-1:123456789012:runtime/runtime-abc",
+        ),
+        patch.object(
             investigator_adapter, "MONITORED_FUNCTION_NAME", "incident-agent-demo-api-dev"
-        ),  # noqa: E501
+        ),
         patch("investigator_adapter.boto3") as mock_boto3,
     ):
         mock_boto3.client.return_value = mock_client
@@ -57,7 +62,11 @@ def test_handler_calls_invoke_and_returns_body():
     assert result == {"body": SAMPLE_REPORT}
     mock_client.invoke_agent_runtime.assert_called_once()
     call_kwargs = mock_client.invoke_agent_runtime.call_args.kwargs
-    assert call_kwargs["agentRuntimeId"] == "runtime-abc"
+    assert (
+        call_kwargs["agentRuntimeArn"]
+        == "arn:aws:bedrock-agentcore:eu-west-1:123456789012:runtime/runtime-abc"
+    )
+    assert len(call_kwargs["runtimeSessionId"]) >= 33
     payload = json.loads(call_kwargs["payload"])
     assert payload["incident_context"]["alarm_name"] == "incident-agent-dev-duration"
     assert payload["incident_context"]["lambda_function_name"] == "incident-agent-demo-api-dev"

@@ -63,8 +63,13 @@ def test_handler_fetches_repo_and_invokes_runtime():
     with (
         patch.object(remediation_adapter, "RUNTIME_ID", "runtime-xyz"),
         patch.object(
+            remediation_adapter,
+            "RUNTIME_ARN",
+            "arn:aws:bedrock-agentcore:eu-west-1:123456789012:runtime/runtime-xyz",
+        ),
+        patch.object(
             remediation_adapter, "GITHUB_REPO_SSM_NAME", "/incident-agent/dev/github-repo"
-        ),  # noqa: E501
+        ),
         patch("remediation_adapter.boto3") as mock_boto3,
     ):
         mock_boto3.client.side_effect = make_client
@@ -74,7 +79,11 @@ def test_handler_fetches_repo_and_invokes_runtime():
     mock_ssm.get_parameter.assert_called_once_with(Name="/incident-agent/dev/github-repo")
 
     call_kwargs = mock_runtime.invoke_agent_runtime.call_args.kwargs
-    assert call_kwargs["agentRuntimeId"] == "runtime-xyz"
+    assert (
+        call_kwargs["agentRuntimeArn"]
+        == "arn:aws:bedrock-agentcore:eu-west-1:123456789012:runtime/runtime-xyz"
+    )
+    assert len(call_kwargs["runtimeSessionId"]) >= 33
     payload = json.loads(call_kwargs["payload"])
     assert payload["github_repo"] == "owner/repo"
     assert payload["incident_report"]["incident_id"] == "INC-test-123"
