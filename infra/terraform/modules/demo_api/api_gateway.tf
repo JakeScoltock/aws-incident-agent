@@ -11,7 +11,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "proxy" {
+resource "aws_apigatewayv2_route" "default" {
   api_id    = aws_apigatewayv2_api.demo_api.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
@@ -30,7 +30,7 @@ resource "aws_apigatewayv2_deployment" "main" {
 
   depends_on = [
     aws_apigatewayv2_integration.lambda,
-    aws_apigatewayv2_route.proxy,
+    aws_apigatewayv2_route.default,
     aws_apigatewayv2_route.root,
   ]
 
