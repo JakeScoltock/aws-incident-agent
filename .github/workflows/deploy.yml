@@ -89,6 +89,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # setup-python puts Python 3.13 first in PATH so Terraform's local-exec
+      # subprocess picks up the pip-installed boto3 (not the old system boto3).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Install Python dependencies for runtime management
         run: pip install boto3 --quiet
 
