@@ -43,14 +43,6 @@ def handler(event: dict, context) -> dict:
         payload=json.dumps(payload).encode("utf-8"),
     )
 
-    result = _read_stream(response["completion"])
+    result = json.loads(response["response"].read())
     logger.info("investigation complete", extra={"confidence": result.get("confidence")})
     return {"body": result}
-
-
-def _read_stream(stream) -> dict:
-    chunks = []
-    for event in stream:
-        if "payloadChunk" in event:
-            chunks.append(event["payloadChunk"]["bytes"].decode("utf-8"))
-    return json.loads("".join(chunks))

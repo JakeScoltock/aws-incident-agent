@@ -1,3 +1,4 @@
+import io
 import json
 import sys
 from unittest.mock import MagicMock, patch
@@ -43,9 +44,10 @@ SAMPLE_REMEDIATION = {
 }
 
 
-def _make_stream(payload: dict):
-    chunk = {"payloadChunk": {"bytes": json.dumps(payload).encode("utf-8")}}
-    return iter([chunk])
+def _make_response(payload: dict):
+    """Build a mock invoke_agent_runtime response with a StreamingBody."""
+    body = io.BytesIO(json.dumps(payload).encode("utf-8"))
+    return {"response": body}
 
 
 def test_handler_fetches_repo_and_invokes_runtime():
@@ -53,9 +55,7 @@ def test_handler_fetches_repo_and_invokes_runtime():
     mock_ssm.get_parameter.return_value = {"Parameter": {"Value": "owner/repo"}}
 
     mock_runtime = MagicMock()
-    mock_runtime.invoke_agent_runtime.return_value = {
-        "completion": _make_stream(SAMPLE_REMEDIATION)
-    }
+    mock_runtime.invoke_agent_runtime.return_value = _make_response(SAMPLE_REMEDIATION)
 
     def make_client(service, **kwargs):
         return mock_ssm if service == "ssm" else mock_runtime

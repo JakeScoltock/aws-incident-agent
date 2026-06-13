@@ -1,3 +1,4 @@
+import io
 import json
 import sys
 from unittest.mock import MagicMock, patch
@@ -34,15 +35,15 @@ SAMPLE_REPORT = {
 }
 
 
-def _make_stream(payload: dict):
-    """Build a minimal EventStream mock returning one payloadChunk."""
-    chunk = {"payloadChunk": {"bytes": json.dumps(payload).encode("utf-8")}}
-    return iter([chunk])
+def _make_response(payload: dict):
+    """Build a mock invoke_agent_runtime response with a StreamingBody."""
+    body = io.BytesIO(json.dumps(payload).encode("utf-8"))
+    return {"response": body}
 
 
 def test_handler_calls_invoke_and_returns_body():
     mock_client = MagicMock()
-    mock_client.invoke_agent_runtime.return_value = {"completion": _make_stream(SAMPLE_REPORT)}
+    mock_client.invoke_agent_runtime.return_value = _make_response(SAMPLE_REPORT)
 
     with (
         patch.object(investigator_adapter, "RUNTIME_ID", "runtime-abc"),
@@ -77,23 +78,3 @@ def test_handler_returns_placeholder_when_runtime_id_unset():
         result = investigator_adapter.handler(SAMPLE_EVENT, None)
     assert result["body"]["status"] == "placeholder"
     assert result["body"]["confidence"] == 0.0
-
-
-def test_read_stream_reassembles_chunks():
-    part1 = '{"incident_id":'
-    part2 = ' "INC-1"}'
-    stream = [
-        {"payloadChunk": {"bytes": part1.encode()}},
-        {"payloadChunk": {"bytes": part2.encode()}},
-    ]
-    result = investigator_adapter._read_stream(iter(stream))
-    assert result == {"incident_id": "INC-1"}
-
-
-def test_read_stream_ignores_unknown_event_types():
-    stream = [
-        {"otherEvent": {}},
-        {"payloadChunk": {"bytes": b'{"ok": true}'}},
-    ]
-    result = investigator_adapter._read_stream(iter(stream))
-    assert result == {"ok": True}

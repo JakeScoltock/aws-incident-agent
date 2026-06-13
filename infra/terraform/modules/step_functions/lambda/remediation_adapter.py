@@ -42,7 +42,7 @@ def handler(event: dict, context) -> dict:
         payload=json.dumps(payload).encode("utf-8"),
     )
 
-    result = _read_stream(response["completion"])
+    result = json.loads(response["response"].read())
     logger.info("remediation complete", extra={"pr_url": result.get("pr_url")})
     return {"body": result}
 
@@ -51,11 +51,3 @@ def _get_github_repo() -> str:
     ssm = boto3.client("ssm", region_name=AWS_REGION)
     response = ssm.get_parameter(Name=GITHUB_REPO_SSM_NAME)
     return response["Parameter"]["Value"]
-
-
-def _read_stream(stream) -> dict:
-    chunks = []
-    for event in stream:
-        if "payloadChunk" in event:
-            chunks.append(event["payloadChunk"]["bytes"].decode("utf-8"))
-    return json.loads("".join(chunks))
