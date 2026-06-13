@@ -9,7 +9,6 @@ Environment variables (set by Terraform):
 """
 
 import os
-import sys
 import time
 
 import boto3
