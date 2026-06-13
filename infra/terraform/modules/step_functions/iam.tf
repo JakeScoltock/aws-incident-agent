@@ -75,6 +75,14 @@ data "aws_iam_policy_document" "lambda_assume" {
   }
 }
 
+data "aws_iam_policy_document" "adapter_invoke_agentcore" {
+  statement {
+    sid       = "InvokeAgentCoreRuntime"
+    actions   = ["bedrock-agentcore:InvokeAgentRuntime"]
+    resources = ["arn:aws:bedrock-agentcore:${var.aws_region}:${data.aws_caller_identity.current.account_id}:runtime/*"]
+  }
+}
+
 resource "aws_iam_role" "investigator_adapter" {
   name               = "incident-agent-investigator-adapter-${var.env}"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
@@ -85,6 +93,12 @@ resource "aws_iam_role_policy_attachment" "investigator_adapter_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy" "investigator_adapter_agentcore" {
+  name   = "invoke-agentcore"
+  role   = aws_iam_role.investigator_adapter.id
+  policy = data.aws_iam_policy_document.adapter_invoke_agentcore.json
+}
+
 resource "aws_iam_role" "remediation_adapter" {
   name               = "incident-agent-remediation-adapter-${var.env}"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
@@ -93,4 +107,10 @@ resource "aws_iam_role" "remediation_adapter" {
 resource "aws_iam_role_policy_attachment" "remediation_adapter_basic" {
   role       = aws_iam_role.remediation_adapter.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "remediation_adapter_agentcore" {
+  name   = "invoke-agentcore"
+  role   = aws_iam_role.remediation_adapter.id
+  policy = data.aws_iam_policy_document.adapter_invoke_agentcore.json
 }

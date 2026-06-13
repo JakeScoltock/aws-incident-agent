@@ -22,3 +22,9 @@ variable "github_token" {
 variable "github_repo" {
   type = string
 }
+
+variable "image_tag" {
+  description = "Image tag to deploy to AgentCore runtimes (defaults to latest; set to git SHA in CI)"
+  type        = string
+  default     = "latest"
+}

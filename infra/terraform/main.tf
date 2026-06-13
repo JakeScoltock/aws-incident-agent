@@ -24,6 +24,7 @@ module "agentcore" {
   deployment_history_table_name = module.observability.deployment_history_table_name
   github_token                  = var.github_token
   github_repo                   = var.github_repo
+  image_tag                     = var.image_tag
 }
 
 module "step_functions" {
