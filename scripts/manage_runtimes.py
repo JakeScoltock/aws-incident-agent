@@ -27,7 +27,7 @@ def _wait_ready(client, runtime_id: str, max_wait: int = 180) -> None:
     deadline = time.time() + max_wait
     while time.time() < deadline:
         resp = client.get_agent_runtime(agentRuntimeId=runtime_id)
-        status = resp["agentRuntimeStatus"]
+        status = resp["status"]
         print(f"  status: {status}", flush=True)
         if status == "READY":
             return
