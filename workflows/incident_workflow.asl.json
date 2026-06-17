@@ -103,7 +103,7 @@
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
         "TopicArn": "${AlertTopicArn}",
-        "Message.$": "States.Format('Incident resolved: {}. PR: {}', $.investigation.body.summary, $.remediation.body.pr_url)",
+        "Message.$": "States.Format('Incident resolved: {}. PR: {}', $.investigation.body.root_cause_summary, $.remediation.body.pr_url)",
         "Subject": "Incident Agent — Remediation PR opened"
       },
       "Next": "Succeed"
