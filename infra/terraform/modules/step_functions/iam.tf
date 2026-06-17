@@ -114,3 +114,17 @@ resource "aws_iam_role_policy" "remediation_adapter_agentcore" {
   role   = aws_iam_role.remediation_adapter.id
   policy = data.aws_iam_policy_document.adapter_invoke_agentcore.json
 }
+
+data "aws_iam_policy_document" "remediation_adapter_ssm" {
+  statement {
+    sid       = "ReadGithubRepoParam"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/incident-agent/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "remediation_adapter_ssm" {
+  name   = "ssm-read"
+  role   = aws_iam_role.remediation_adapter.id
+  policy = data.aws_iam_policy_document.remediation_adapter_ssm.json
+}
