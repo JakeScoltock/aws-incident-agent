@@ -1,3 +1,5 @@
+"""CloudWatch and DynamoDB tools for the investigator agent."""
+
 from .cloudwatch_logs import query_lambda_logs
 from .cloudwatch_metrics import get_lambda_metrics
 from .deployment_history import get_deployment_history

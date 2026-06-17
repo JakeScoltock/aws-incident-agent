@@ -19,6 +19,7 @@ terraform {
   # Bootstrap (one-time, before first terraform init):
   #   aws s3 mb s3://aws-incident-agent-tfstate --region eu-west-1
 
+  # Region must be hardcoded here — backend blocks don't support variable interpolation.
   backend "s3" {
     bucket         = "aws-incident-agent-tfstate"
     key            = "incident-agent/terraform.tfstate"

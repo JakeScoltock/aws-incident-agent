@@ -1,3 +1,5 @@
+"""GitHub REST API tools for the remediation agent."""
+
 from .branch import create_github_branch
 from .commit import commit_file_to_github
 from .pull_request import create_github_pull_request
