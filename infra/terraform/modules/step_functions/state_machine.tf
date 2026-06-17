@@ -91,7 +91,7 @@ resource "aws_sfn_state_machine" "incident_pipeline" {
         Resource = "arn:aws:states:::sns:publish"
         Parameters = {
           TopicArn    = var.alert_topic_arn
-          "Message.$" = "States.Format('Incident resolved: {}. PR: {}', $.investigation.body.summary, $.remediation.body.pr_url)"
+          "Message.$" = "States.Format('Incident resolved: {}. PR: {}', $.investigation.body.root_cause_summary, $.remediation.body.pr_url)"
           Subject     = "Incident Agent — Remediation PR opened"
         }
         Catch = [{
