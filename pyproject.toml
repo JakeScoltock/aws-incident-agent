@@ -11,6 +11,9 @@ dependencies = [
     "bedrock-agentcore>=0.1",
 ]
 
+[project.urls]
+Repository = "https://github.com/JakeScoltock/aws-incident-agent"
+
 [project.optional-dependencies]
 dev = [
     "ruff",
