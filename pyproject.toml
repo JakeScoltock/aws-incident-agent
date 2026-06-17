@@ -2,9 +2,6 @@
 name = "aws-incident-agent"
 version = "0.1.0"
 requires-python = ">=3.13"
-
-[project.urls]
-Repository = "https://github.com/JakeScoltock/aws-incident-agent"
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
@@ -13,6 +10,9 @@ dependencies = [
     "strands-agents>=0.1",
     "bedrock-agentcore>=0.1",
 ]
+
+[project.urls]
+Repository = "https://github.com/JakeScoltock/aws-incident-agent"
 
 [project.optional-dependencies]
 dev = [
