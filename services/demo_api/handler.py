@@ -1,13 +1,16 @@
-"""Demo API Lambda — intentionally sleeps 28s to trigger the timeout alarm."""
+"""Demo API Lambda — handles /health, /slow, and default routes."""
 
 import json
 import logging
-import time
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-SLOW_PATH_SLEEP_SECONDS = 28  # deliberate regression introduced in this "bad deploy"
+# Maximum time (seconds) the slow path is permitted to simulate work.
+# Previously this was set to 28 s (a deliberate regression that triggered the
+# Lambda duration alarm INC-incident-agent-dev-lambda-duration-1750189004).
+# The value is now capped at 1 s so the function stays well within its timeout.
+SLOW_PATH_SLEEP_SECONDS = 1  # fix: removed 28-second blocking sleep regression
 
 
 def lambda_handler(event: dict, context: object) -> dict:
@@ -18,9 +21,16 @@ def lambda_handler(event: dict, context: object) -> dict:
         return _response(200, {"status": "ok"})
 
     if path == "/slow":
-        logger.warning("Entering slow path", extra={"sleep_seconds": SLOW_PATH_SLEEP_SECONDS})
-        time.sleep(SLOW_PATH_SLEEP_SECONDS)
-        return _response(200, {"message": "done (but slow)"})
+        # Guard: never sleep longer than the configured cap.
+        import time  # imported here to keep the top-level import surface minimal
+
+        capped = min(SLOW_PATH_SLEEP_SECONDS, 1)
+        logger.info(
+            "Entering slow path",
+            extra={"sleep_seconds": capped},
+        )
+        time.sleep(capped)
+        return _response(200, {"message": "done (slow path, capped)"})
 
     return _response(200, {"message": "hello from demo-api"})
 
